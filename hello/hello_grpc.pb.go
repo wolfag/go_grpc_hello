@@ -53,7 +53,7 @@ func RegisterGreeterServer(s grpc.ServiceRegistrar, srv GreeterServer) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Greeter_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "helloworld.Greeter",
+	ServiceName: "go_grpc_hello.Greeter",
 	HandlerType: (*GreeterServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams:     []grpc.StreamDesc{},
