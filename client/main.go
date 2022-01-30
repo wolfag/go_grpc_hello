@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
-	"time"
 
 	pb "github.com/wolfag/go_grpc_hello/hello"
 	"google.golang.org/grpc"
@@ -19,12 +19,50 @@ func main() {
 
 	client := pb.NewGreeterClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	// sum(client)
 
-	r, err := client.SayHello(ctx, &pb.HelloRequest{Name: "papa"})
+	// hello(client, "tai")
+
+	primeStream(client, 120)
+
+}
+
+func hello(client pb.GreeterClient, name string) {
+	r, err := client.SayHello(context.Background(), &pb.HelloRequest{Name: name})
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Print(r)
+	log.Println(r)
+}
+
+func sum(client pb.GreeterClient) {
+	r, err := client.Sum(context.Background(), &pb.SumRequest{N1: 4, N2: 9})
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(r)
+}
+
+func primeStream(client pb.GreeterClient, number int32) {
+	stream, err := client.PrimeNumber(context.Background(), &pb.PrimeRequest{N: number})
+
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	for {
+		r, err := stream.Recv()
+		if err == io.EOF {
+			log.Printf("end stream %v \n", err)
+			return
+		}
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		log.Println(r.GetResult())
+	}
+
 }

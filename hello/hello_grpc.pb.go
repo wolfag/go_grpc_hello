@@ -19,6 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GreeterClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
+	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
+	PrimeNumber(ctx context.Context, in *PrimeRequest, opts ...grpc.CallOption) (Greeter_PrimeNumberClient, error)
 }
 
 type greeterClient struct {
@@ -38,11 +40,54 @@ func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...
 	return out, nil
 }
 
+func (c *greeterClient) Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error) {
+	out := new(SumResponse)
+	err := c.cc.Invoke(ctx, "/go_grpc_hello.Greeter/Sum", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *greeterClient) PrimeNumber(ctx context.Context, in *PrimeRequest, opts ...grpc.CallOption) (Greeter_PrimeNumberClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Greeter_ServiceDesc.Streams[0], "/go_grpc_hello.Greeter/PrimeNumber", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &greeterPrimeNumberClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Greeter_PrimeNumberClient interface {
+	Recv() (*PrimeResponse, error)
+	grpc.ClientStream
+}
+
+type greeterPrimeNumberClient struct {
+	grpc.ClientStream
+}
+
+func (x *greeterPrimeNumberClient) Recv() (*PrimeResponse, error) {
+	m := new(PrimeResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GreeterServer is the server API for Greeter service.
 // All implementations must embed UnimplementedGreeterServer
 // for forward compatibility
 type GreeterServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
+	Sum(context.Context, *SumRequest) (*SumResponse, error)
+	PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error
 	mustEmbedUnimplementedGreeterServer()
 }
 
@@ -52,6 +97,12 @@ type UnimplementedGreeterServer struct {
 
 func (UnimplementedGreeterServer) SayHello(context.Context, *HelloRequest) (*HelloResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
+}
+func (UnimplementedGreeterServer) Sum(context.Context, *SumRequest) (*SumResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Sum not implemented")
+}
+func (UnimplementedGreeterServer) PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error {
+	return status.Errorf(codes.Unimplemented, "method PrimeNumber not implemented")
 }
 func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
 
@@ -84,6 +135,45 @@ func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Greeter_Sum_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SumRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GreeterServer).Sum(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go_grpc_hello.Greeter/Sum",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GreeterServer).Sum(ctx, req.(*SumRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Greeter_PrimeNumber_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PrimeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(GreeterServer).PrimeNumber(m, &greeterPrimeNumberServer{stream})
+}
+
+type Greeter_PrimeNumberServer interface {
+	Send(*PrimeResponse) error
+	grpc.ServerStream
+}
+
+type greeterPrimeNumberServer struct {
+	grpc.ServerStream
+}
+
+func (x *greeterPrimeNumberServer) Send(m *PrimeResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -95,7 +185,17 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "SayHello",
 			Handler:    _Greeter_SayHello_Handler,
 		},
+		{
+			MethodName: "Sum",
+			Handler:    _Greeter_Sum_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PrimeNumber",
+			Handler:       _Greeter_PrimeNumber_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "hello/hello.proto",
 }

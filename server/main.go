@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"time"
 
 	pb "github.com/wolfag/go_grpc_hello/hello"
 	"google.golang.org/grpc"
@@ -17,6 +18,30 @@ func (*server) SayHello(ctx context.Context, req *pb.HelloRequest) (*pb.HelloRes
 	return &pb.HelloResponse{
 		Message: "Hello " + req.Name,
 	}, nil
+}
+
+func (*server) Sum(ctx context.Context, req *pb.SumRequest) (*pb.SumResponse, error) {
+	return &pb.SumResponse{
+		Result: req.N1 + req.N2,
+	}, nil
+}
+
+func (*server) PrimeNumber(req *pb.PrimeRequest, stream pb.Greeter_PrimeNumberServer) error {
+	n := req.GetN()
+	k := int32(2)
+	log.Printf("go... %v\n", n)
+	for n > 1 {
+		if n%k == 0 {
+			n = n / k
+
+			stream.Send(&pb.PrimeResponse{Result: k})
+			time.Sleep(1000 * time.Millisecond)
+		} else {
+			k++
+			log.Printf("k=%v\n", k)
+		}
+	}
+	return nil
 }
 
 func main() {
