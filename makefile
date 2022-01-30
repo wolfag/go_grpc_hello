@@ -4,3 +4,6 @@ gen:
   		hello/hello.proto
 s:
 	go run server/main.go
+
+c: 
+	go run client/main.go
