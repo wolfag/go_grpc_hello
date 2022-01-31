@@ -7,6 +7,7 @@ package go_grpc_hello;
 service Greeter {
     rpc SayHello(HelloRequest) returns (HelloResponse){};
     rpc Sum(SumRequest) returns (SumResponse) {};
+    rpc SumWithDeadline(SumRequest) returns (SumResponse) {};
     rpc PrimeNumber(PrimeRequest) returns (stream PrimeResponse) {};
     rpc Average(stream AverageRequest) returns (AverageResponse) {};
     rpc Max(stream MaxRequest) returns (stream MaxResponse) {}

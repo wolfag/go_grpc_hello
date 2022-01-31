@@ -107,6 +107,20 @@ func (*server) Square(ctx context.Context, req *pb.SquareRequest) (*pb.SquareRes
 	}, nil
 }
 
+func (*server) SumWithDeadline(ctx context.Context, req *pb.SumRequest) (*pb.SumResponse, error) {
+	// simulator expensive task
+	for i := 0; i < 3; i++ {
+		if ctx.Err() == context.Canceled {
+			log.Println("client cancel")
+			return nil, status.Error(codes.DeadlineExceeded, "client cancel request")
+		}
+		time.Sleep(1 * (time.Second))
+	}
+	return &pb.SumResponse{
+		Result: req.N1 + req.N2,
+	}, nil
+}
+
 func main() {
 	lis, err := net.Listen("tcp", "0.0.0.0:50069")
 	if err != nil {

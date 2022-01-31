@@ -31,7 +31,10 @@ func main() {
 
 	// average(client)
 	// max(client)
-	square(client, -98)
+	// square(client, -98)
+
+	sumWithDeadline(client, 4*time.Second) // ok
+	sumWithDeadline(client, 1*time.Second) // timeout
 
 }
 
@@ -47,6 +50,25 @@ func sum(client pb.GreeterClient) {
 	r, err := client.Sum(context.Background(), &pb.SumRequest{N1: 4, N2: 9})
 	if err != nil {
 		log.Fatal(err)
+	}
+	log.Println(r)
+}
+func sumWithDeadline(client pb.GreeterClient, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	r, err := client.SumWithDeadline(ctx, &pb.SumRequest{N1: 4, N2: 9})
+
+	if err != nil {
+		if statusErr, ok := status.FromError(err); ok {
+			if statusErr.Code() == codes.DeadlineExceeded {
+				log.Println("DeadlineExceeded ")
+			} else {
+				log.Print("-----unknown")
+			}
+		} else {
+			log.Fatal(err)
+		}
 	}
 	log.Println(r)
 }

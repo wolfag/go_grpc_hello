@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type GreeterClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
+	SumWithDeadline(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
 	PrimeNumber(ctx context.Context, in *PrimeRequest, opts ...grpc.CallOption) (Greeter_PrimeNumberClient, error)
 	Average(ctx context.Context, opts ...grpc.CallOption) (Greeter_AverageClient, error)
 	Max(ctx context.Context, opts ...grpc.CallOption) (Greeter_MaxClient, error)
@@ -46,6 +47,15 @@ func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...
 func (c *greeterClient) Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error) {
 	out := new(SumResponse)
 	err := c.cc.Invoke(ctx, "/go_grpc_hello.Greeter/Sum", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *greeterClient) SumWithDeadline(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error) {
+	out := new(SumResponse)
+	err := c.cc.Invoke(ctx, "/go_grpc_hello.Greeter/SumWithDeadline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -164,6 +174,7 @@ func (c *greeterClient) Square(ctx context.Context, in *SquareRequest, opts ...g
 type GreeterServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
 	Sum(context.Context, *SumRequest) (*SumResponse, error)
+	SumWithDeadline(context.Context, *SumRequest) (*SumResponse, error)
 	PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error
 	Average(Greeter_AverageServer) error
 	Max(Greeter_MaxServer) error
@@ -180,6 +191,9 @@ func (UnimplementedGreeterServer) SayHello(context.Context, *HelloRequest) (*Hel
 }
 func (UnimplementedGreeterServer) Sum(context.Context, *SumRequest) (*SumResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sum not implemented")
+}
+func (UnimplementedGreeterServer) SumWithDeadline(context.Context, *SumRequest) (*SumResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SumWithDeadline not implemented")
 }
 func (UnimplementedGreeterServer) PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error {
 	return status.Errorf(codes.Unimplemented, "method PrimeNumber not implemented")
@@ -238,6 +252,24 @@ func _Greeter_Sum_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GreeterServer).Sum(ctx, req.(*SumRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Greeter_SumWithDeadline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SumRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GreeterServer).SumWithDeadline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go_grpc_hello.Greeter/SumWithDeadline",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GreeterServer).SumWithDeadline(ctx, req.(*SumRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -347,6 +379,10 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Sum",
 			Handler:    _Greeter_Sum_Handler,
+		},
+		{
+			MethodName: "SumWithDeadline",
+			Handler:    _Greeter_SumWithDeadline_Handler,
 		},
 		{
 			MethodName: "Square",
