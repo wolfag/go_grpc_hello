@@ -22,6 +22,7 @@ type GreeterClient interface {
 	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
 	PrimeNumber(ctx context.Context, in *PrimeRequest, opts ...grpc.CallOption) (Greeter_PrimeNumberClient, error)
 	Average(ctx context.Context, opts ...grpc.CallOption) (Greeter_AverageClient, error)
+	Max(ctx context.Context, opts ...grpc.CallOption) (Greeter_MaxClient, error)
 }
 
 type greeterClient struct {
@@ -116,6 +117,37 @@ func (x *greeterAverageClient) CloseAndRecv() (*AverageResponse, error) {
 	return m, nil
 }
 
+func (c *greeterClient) Max(ctx context.Context, opts ...grpc.CallOption) (Greeter_MaxClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Greeter_ServiceDesc.Streams[2], "/go_grpc_hello.Greeter/Max", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &greeterMaxClient{stream}
+	return x, nil
+}
+
+type Greeter_MaxClient interface {
+	Send(*MaxRequest) error
+	Recv() (*MaxResponse, error)
+	grpc.ClientStream
+}
+
+type greeterMaxClient struct {
+	grpc.ClientStream
+}
+
+func (x *greeterMaxClient) Send(m *MaxRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *greeterMaxClient) Recv() (*MaxResponse, error) {
+	m := new(MaxResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GreeterServer is the server API for Greeter service.
 // All implementations must embed UnimplementedGreeterServer
 // for forward compatibility
@@ -124,6 +156,7 @@ type GreeterServer interface {
 	Sum(context.Context, *SumRequest) (*SumResponse, error)
 	PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error
 	Average(Greeter_AverageServer) error
+	Max(Greeter_MaxServer) error
 	mustEmbedUnimplementedGreeterServer()
 }
 
@@ -142,6 +175,9 @@ func (UnimplementedGreeterServer) PrimeNumber(*PrimeRequest, Greeter_PrimeNumber
 }
 func (UnimplementedGreeterServer) Average(Greeter_AverageServer) error {
 	return status.Errorf(codes.Unimplemented, "method Average not implemented")
+}
+func (UnimplementedGreeterServer) Max(Greeter_MaxServer) error {
+	return status.Errorf(codes.Unimplemented, "method Max not implemented")
 }
 func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
 
@@ -239,6 +275,32 @@ func (x *greeterAverageServer) Recv() (*AverageRequest, error) {
 	return m, nil
 }
 
+func _Greeter_Max_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(GreeterServer).Max(&greeterMaxServer{stream})
+}
+
+type Greeter_MaxServer interface {
+	Send(*MaxResponse) error
+	Recv() (*MaxRequest, error)
+	grpc.ServerStream
+}
+
+type greeterMaxServer struct {
+	grpc.ServerStream
+}
+
+func (x *greeterMaxServer) Send(m *MaxResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *greeterMaxServer) Recv() (*MaxRequest, error) {
+	m := new(MaxRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -264,6 +326,12 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Average",
 			Handler:       _Greeter_Average_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Max",
+			Handler:       _Greeter_Max_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},

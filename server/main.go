@@ -69,6 +69,29 @@ func (*server) Average(stream pb.Greeter_AverageServer) error {
 	}
 }
 
+func (*server) Max(stream pb.Greeter_MaxServer) error {
+	max := int32(0)
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			log.Println("end Max")
+			return nil
+		}
+		if err != nil {
+			log.Fatal(err)
+			return err
+		}
+		num := req.GetN()
+		if num > max {
+			max = num
+		}
+		err = stream.Send(&pb.MaxResponse{Result: max})
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 func main() {
 	lis, err := net.Listen("tcp", "0.0.0.0:50069")
 	if err != nil {

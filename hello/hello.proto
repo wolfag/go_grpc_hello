@@ -9,6 +9,14 @@ service Greeter {
     rpc Sum(SumRequest) returns (SumResponse) {};
     rpc PrimeNumber(PrimeRequest) returns (stream PrimeResponse) {};
     rpc Average(stream AverageRequest) returns (AverageResponse) {};
+    rpc Max(stream MaxRequest) returns (stream MaxResponse) {}
+}
+
+message MaxRequest {
+    int32 n = 1;
+}
+message MaxResponse {
+    int32 result = 1;
 }
 
 message AverageRequest{

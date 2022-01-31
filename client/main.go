@@ -27,7 +27,8 @@ func main() {
 
 	// primeStream(client, 120)
 
-	average(client)
+	// average(client)
+	max(client)
 
 }
 
@@ -101,4 +102,48 @@ func average(client pb.GreeterClient) {
 		log.Fatal(err)
 	}
 	fmt.Println(res.GetResult())
+}
+
+func max(client pb.GreeterClient) {
+	stream, err := client.Max(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	wait := make(chan struct{})
+
+	go func() {
+		listReq := []pb.MaxRequest{
+			{N: 4},
+			{N: 7},
+			{N: 1},
+			{N: 9},
+		}
+		for _, v := range listReq {
+			err := stream.Send(&v)
+			if err != nil {
+				log.Fatal(err)
+			}
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				log.Println("---end stream")
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+				break
+			}
+			log.Printf("rev max: %v\n", res.GetResult())
+		}
+		close(wait)
+	}()
+
+	<-wait
 }
