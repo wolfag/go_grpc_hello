@@ -9,6 +9,8 @@ import (
 
 	pb "github.com/wolfag/go_grpc_hello/hello"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -28,7 +30,8 @@ func main() {
 	// primeStream(client, 120)
 
 	// average(client)
-	max(client)
+	// max(client)
+	square(client, -98)
 
 }
 
@@ -146,4 +149,22 @@ func max(client pb.GreeterClient) {
 	}()
 
 	<-wait
+}
+
+func square(client pb.GreeterClient, num int32) {
+	res, err := client.Square(context.Background(), &pb.SquareRequest{N: num})
+	if err != nil {
+		log.Printf("call square root api err %v\n", err)
+		if errStatus, ok := status.FromError(err); ok {
+			log.Printf("err msg: %v\n", errStatus.Message())
+			log.Printf("err code: %v\n", errStatus.Code())
+			if errStatus.Code() == codes.InvalidArgument {
+				log.Printf("InvalidArgument num %v", num)
+				return
+			}
+		}
+	}
+
+	log.Printf("square root response %v\n", res.GetResult())
+
 }

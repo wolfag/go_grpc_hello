@@ -23,6 +23,7 @@ type GreeterClient interface {
 	PrimeNumber(ctx context.Context, in *PrimeRequest, opts ...grpc.CallOption) (Greeter_PrimeNumberClient, error)
 	Average(ctx context.Context, opts ...grpc.CallOption) (Greeter_AverageClient, error)
 	Max(ctx context.Context, opts ...grpc.CallOption) (Greeter_MaxClient, error)
+	Square(ctx context.Context, in *SquareRequest, opts ...grpc.CallOption) (*SquareResponse, error)
 }
 
 type greeterClient struct {
@@ -148,6 +149,15 @@ func (x *greeterMaxClient) Recv() (*MaxResponse, error) {
 	return m, nil
 }
 
+func (c *greeterClient) Square(ctx context.Context, in *SquareRequest, opts ...grpc.CallOption) (*SquareResponse, error) {
+	out := new(SquareResponse)
+	err := c.cc.Invoke(ctx, "/go_grpc_hello.Greeter/Square", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GreeterServer is the server API for Greeter service.
 // All implementations must embed UnimplementedGreeterServer
 // for forward compatibility
@@ -157,6 +167,7 @@ type GreeterServer interface {
 	PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error
 	Average(Greeter_AverageServer) error
 	Max(Greeter_MaxServer) error
+	Square(context.Context, *SquareRequest) (*SquareResponse, error)
 	mustEmbedUnimplementedGreeterServer()
 }
 
@@ -178,6 +189,9 @@ func (UnimplementedGreeterServer) Average(Greeter_AverageServer) error {
 }
 func (UnimplementedGreeterServer) Max(Greeter_MaxServer) error {
 	return status.Errorf(codes.Unimplemented, "method Max not implemented")
+}
+func (UnimplementedGreeterServer) Square(context.Context, *SquareRequest) (*SquareResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Square not implemented")
 }
 func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
 
@@ -301,6 +315,24 @@ func (x *greeterMaxServer) Recv() (*MaxRequest, error) {
 	return m, nil
 }
 
+func _Greeter_Square_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SquareRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GreeterServer).Square(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/go_grpc_hello.Greeter/Square",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GreeterServer).Square(ctx, req.(*SquareRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -315,6 +347,10 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Sum",
 			Handler:    _Greeter_Sum_Handler,
+		},
+		{
+			MethodName: "Square",
+			Handler:    _Greeter_Square_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

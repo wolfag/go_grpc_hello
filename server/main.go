@@ -4,11 +4,14 @@ import (
 	"context"
 	"io"
 	"log"
+	"math"
 	"net"
 	"time"
 
 	pb "github.com/wolfag/go_grpc_hello/hello"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type server struct {
@@ -90,6 +93,18 @@ func (*server) Max(stream pb.Greeter_MaxServer) error {
 			log.Fatal(err)
 		}
 	}
+}
+
+func (*server) Square(ctx context.Context, req *pb.SquareRequest) (*pb.SquareResponse, error) {
+	num := req.GetN()
+	log.Printf("num: %v", num)
+	if num < 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "expect num > 0, but got %v", num)
+	}
+
+	return &pb.SquareResponse{
+		Result: math.Sqrt(float64(num)),
+	}, nil
 }
 
 func main() {
