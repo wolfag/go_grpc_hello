@@ -21,6 +21,7 @@ type GreeterClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloResponse, error)
 	Sum(ctx context.Context, in *SumRequest, opts ...grpc.CallOption) (*SumResponse, error)
 	PrimeNumber(ctx context.Context, in *PrimeRequest, opts ...grpc.CallOption) (Greeter_PrimeNumberClient, error)
+	Average(ctx context.Context, opts ...grpc.CallOption) (Greeter_AverageClient, error)
 }
 
 type greeterClient struct {
@@ -81,6 +82,40 @@ func (x *greeterPrimeNumberClient) Recv() (*PrimeResponse, error) {
 	return m, nil
 }
 
+func (c *greeterClient) Average(ctx context.Context, opts ...grpc.CallOption) (Greeter_AverageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Greeter_ServiceDesc.Streams[1], "/go_grpc_hello.Greeter/Average", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &greeterAverageClient{stream}
+	return x, nil
+}
+
+type Greeter_AverageClient interface {
+	Send(*AverageRequest) error
+	CloseAndRecv() (*AverageResponse, error)
+	grpc.ClientStream
+}
+
+type greeterAverageClient struct {
+	grpc.ClientStream
+}
+
+func (x *greeterAverageClient) Send(m *AverageRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *greeterAverageClient) CloseAndRecv() (*AverageResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(AverageResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GreeterServer is the server API for Greeter service.
 // All implementations must embed UnimplementedGreeterServer
 // for forward compatibility
@@ -88,6 +123,7 @@ type GreeterServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloResponse, error)
 	Sum(context.Context, *SumRequest) (*SumResponse, error)
 	PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error
+	Average(Greeter_AverageServer) error
 	mustEmbedUnimplementedGreeterServer()
 }
 
@@ -103,6 +139,9 @@ func (UnimplementedGreeterServer) Sum(context.Context, *SumRequest) (*SumRespons
 }
 func (UnimplementedGreeterServer) PrimeNumber(*PrimeRequest, Greeter_PrimeNumberServer) error {
 	return status.Errorf(codes.Unimplemented, "method PrimeNumber not implemented")
+}
+func (UnimplementedGreeterServer) Average(Greeter_AverageServer) error {
+	return status.Errorf(codes.Unimplemented, "method Average not implemented")
 }
 func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
 
@@ -174,6 +213,32 @@ func (x *greeterPrimeNumberServer) Send(m *PrimeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Greeter_Average_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(GreeterServer).Average(&greeterAverageServer{stream})
+}
+
+type Greeter_AverageServer interface {
+	SendAndClose(*AverageResponse) error
+	Recv() (*AverageRequest, error)
+	grpc.ServerStream
+}
+
+type greeterAverageServer struct {
+	grpc.ServerStream
+}
+
+func (x *greeterAverageServer) SendAndClose(m *AverageResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *greeterAverageServer) Recv() (*AverageRequest, error) {
+	m := new(AverageRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -195,6 +260,11 @@ var Greeter_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "PrimeNumber",
 			Handler:       _Greeter_PrimeNumber_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "Average",
+			Handler:       _Greeter_Average_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "hello/hello.proto",

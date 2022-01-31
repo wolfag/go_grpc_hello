@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
+	"time"
 
 	pb "github.com/wolfag/go_grpc_hello/hello"
 	"google.golang.org/grpc"
@@ -23,7 +25,9 @@ func main() {
 
 	// hello(client, "tai")
 
-	primeStream(client, 120)
+	// primeStream(client, 120)
+
+	average(client)
 
 }
 
@@ -65,4 +69,36 @@ func primeStream(client pb.GreeterClient, number int32) {
 		log.Println(r.GetResult())
 	}
 
+}
+
+func average(client pb.GreeterClient) {
+	stream, err := client.Average(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	listReq := []pb.AverageRequest{
+		{
+			N: 3,
+		},
+		{
+			N: 5,
+		},
+		{
+			N: 6,
+		},
+	}
+
+	for _, v := range listReq {
+		err := stream.Send(&v)
+		if err != nil {
+			log.Fatal(err)
+		}
+		time.Sleep(1000 * time.Millisecond)
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(res.GetResult())
 }

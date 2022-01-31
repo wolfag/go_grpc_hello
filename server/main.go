@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -42,6 +43,30 @@ func (*server) PrimeNumber(req *pb.PrimeRequest, stream pb.Greeter_PrimeNumberSe
 		}
 	}
 	return nil
+}
+
+func (*server) Average(stream pb.Greeter_AverageServer) error {
+	log.Printf("-----Average")
+	total := float32(0)
+	count := 0
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			res := &pb.AverageResponse{
+				Result: total / float32(count),
+			}
+			return stream.SendAndClose(res)
+		}
+		if err != nil {
+			log.Fatal(err)
+			return err
+		}
+
+		log.Printf("---recv: %v\n", req.GetN())
+
+		total += req.GetN()
+		count++
+	}
 }
 
 func main() {
